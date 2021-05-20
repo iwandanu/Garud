@@ -191,7 +191,7 @@ check_xss() {
     sleep 1s
     echo -ne "${NORMAL}${BOLD}${YELLOW} ● Scanning is in progress:${NORMAL}${BOLD} Checking for xss in $domain [${GREEN}${BLINK}85%${NORMAL}] \r"
     mkdir vulnerabilities/ &> /dev/null
-    cat patterns/$file-xss.txt | kxss | tee vulnerabilities/$file-xss.txt &> /dev/null
+    cat patterns/$file-xss.txt | kxss 2> /dev/null | tee vulnerabilities/$file-xss.txt &> /dev/null
     if [ -n "$bxssServer" ]
         then
             dalfox file $file-params.txt pipe --silence --no-color --no-spinner --mass --mass-worker 100 --multicast --skip-bav -w $thrds -b $bxssServer 2> /dev/null | anew -q vulnerabilities/$file-dalfox.txt &> /dev/null
@@ -219,6 +219,14 @@ check_ssti() {
     cat ~/ssti-payloads.txt | while read -r line; do cat patterns/$file-ssti.txt | qsreplace "$line" | anew -q ssticheck.txt;done
     cat ssticheck.txt | xargs -P 100 -I host bash -c "curl -s -L 'host' | grep \"check-ssti49\" && echo -e \"[VULNERABLE] - host \n \"" | grep "VULNERABLE" | anew vulnerabilities/$file-ssti-vulns.txt | notify -silent &> /dev/null
     rm ssticheck.txt
+}
+
+check_lfi() {
+    sleep 1s
+    echo -ne "${NORMAL}${BOLD}${YELLOW} ● Scanning is in progress:${NORMAL}${BOLD} Checking for lfi vulnerabilities in $domain [${GREEN}${BLINK}89%${NORMAL}] \r"
+    cat ~/lfi-payloads.txt | while read -r line; do cat patterns/$file-lfi.txt | qsreplace "$line" | anew -q lficheck.txt;done
+    cat lficheck.txt | xargs -P 100 -I host bash -c "curl -s -L 'host' | grep \"root:\" && echo -e \"[VULNERABLE] - host \n \"" | grep "VULNERABLE" | anew vulnerabilities/$file-lfi-vulns.txt | notify -silent &> /dev/null
+    rm lficheck.txt
 }
 
 check_nuclei() {
@@ -285,6 +293,7 @@ run_scans() {
     check_crlf
     check_mail
     check_ssti
+    check_lfi
     check_nuclei
     check_sqli
     check_infoleak
