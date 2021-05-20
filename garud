@@ -203,21 +203,21 @@ check_xss() {
 check_crlf() {
     sleep 1s
     echo -ne "${NORMAL}${BOLD}${YELLOW} ● Scanning is in progress:${NORMAL}${BOLD} Checking for crlf in $domain [${GREEN}${BLINK}86%${NORMAL}] \r"
-    crlfuzz -l $file-alive.txt -c $thrds -s | anew vulnerabilities/$file-crlf.txt | notify -silent &> /dev/null
+    crlfuzz -l $file-alive.txt -c $thrds -s | anew vulnerabilities/$file-crlf.txt | notify -telegram -silent &> /dev/null
 }
 
 check_mail() {
     sleep 1s
     echo -ne "${NORMAL}${BOLD}${YELLOW} ● Scanning is in progress:${NORMAL}${BOLD} Checking for email spoofing errors in $domain [${GREEN}${BLINK}87%${NORMAL}] \r"
-    for target in $(echo "$domain"); do if [[ $(curl --connect-timeout 3 -kls --max-time 3 -d "serial=fred12&domain=${target}" -H "Content-Type: application/x-www-form-urlencoded" -X POST "https://www.kitterman.com/spf/getspf3.py") =~ 'SPF record passed validation test with pySPF' ]]; then echo -e "VULNERABLE: ${target}"; else echo -e "NOT VULNERABLE: ${target}"; fi done | tee vulnerabilities/$file-spf.txt | notify -silent &> /dev/null
-    for target in $(echo "$domain"); do if [[ $(curl --connect-timeout 3 -kls --max-time 3 -X GET "https://dmarcly.com/server/dmarc_check.php?domain=${target}") =~ 'success' ]]; then echo -e "VULNERABLE: ${target}"; else echo -e "NOT VULNERABLE: ${target}"; fi done | tee vulnerabilities/$file-email.txt | notify -silent &> /dev/null
+    for target in $(echo "$domain"); do if [[ $(curl --connect-timeout 3 -kls --max-time 3 -d "serial=fred12&domain=${target}" -H "Content-Type: application/x-www-form-urlencoded" -X POST "https://www.kitterman.com/spf/getspf3.py") =~ 'SPF record passed validation test with pySPF' ]]; then echo -e "VULNERABLE: ${target}"; else echo -e "NOT VULNERABLE: ${target}"; fi done | tee vulnerabilities/$file-spf.txt | notify -telegram -silent &> /dev/null
+    for target in $(echo "$domain"); do if [[ $(curl --connect-timeout 3 -kls --max-time 3 -X GET "https://dmarcly.com/server/dmarc_check.php?domain=${target}") =~ 'success' ]]; then echo -e "VULNERABLE: ${target}"; else echo -e "NOT VULNERABLE: ${target}"; fi done | tee vulnerabilities/$file-email.txt | notify -telegram -silent &> /dev/null
 }
 
 check_ssti() {
     sleep 1s
     echo -ne "${NORMAL}${BOLD}${YELLOW} ● Scanning is in progress:${NORMAL}${BOLD} Checking for ssti vulnerabilities in $domain [${GREEN}${BLINK}88%${NORMAL}] \r"
     cat ~/ssti-payloads.txt | while read -r line; do cat patterns/$file-ssti.txt | qsreplace "$line" | anew -q ssticheck.txt;done
-    cat ssticheck.txt | xargs -P 100 -I host bash -c "curl -s -L 'host' | grep \"check-ssti49\" && echo -e \"[VULNERABLE] - host \n \"" | grep "VULNERABLE" | anew vulnerabilities/$file-ssti-vulns.txt | notify -silent &> /dev/null
+    cat ssticheck.txt | xargs -P 100 -I host bash -c "curl -s -L 'host' | grep \"check-ssti49\" && echo -e \"[VULNERABLE] - host \n \"" | grep "VULNERABLE" | anew vulnerabilities/$file-ssti-vulns.txt | notify -telegram -silent &> /dev/null
     rm ssticheck.txt
 }
 
@@ -225,14 +225,14 @@ check_lfi() {
     sleep 1s
     echo -ne "${NORMAL}${BOLD}${YELLOW} ● Scanning is in progress:${NORMAL}${BOLD} Checking for lfi vulnerabilities in $domain [${GREEN}${BLINK}89%${NORMAL}] \r"
     cat ~/lfi-payloads.txt | while read -r line; do cat patterns/$file-lfi.txt | qsreplace "$line" | anew -q lficheck.txt;done
-    cat lficheck.txt | xargs -P 100 -I host bash -c "curl -s -L 'host' | grep \"root:\" && echo -e \"[VULNERABLE] - host \n \"" | grep "VULNERABLE" | anew vulnerabilities/$file-lfi-vulns.txt | notify -silent &> /dev/null
+    cat lficheck.txt | xargs -P 100 -I host bash -c "curl -s -L 'host' | grep \"root:\" && echo -e \"[VULNERABLE] - host \n \"" | grep "VULNERABLE" | anew vulnerabilities/$file-lfi-vulns.txt | notify -telegram -silent &> /dev/null
     rm lficheck.txt
 }
 
 check_nuclei() {
     sleep 1s
     echo -ne "${NORMAL}${BOLD}${YELLOW} ● Scanning is in progress:${NORMAL}${BOLD} Scanning for vulnerabilities of $domain using nuclei [${GREEN}${BLINK}90%${NORMAL}] \r"
-    cat $file-alive.txt | while read -r line;do nuclei -t ~/nuclei-templates/ -target $line -severity low,medium,high,critical -bs 100 -c 200 -rl 300 -nc -silent;done | tee vulnerabilities/$file-nuclei.txt | notify -silent &> /dev/null
+    cat $file-alive.txt | while read -r line;do nuclei -t ~/nuclei-templates/ -target $line -severity low,medium,high,critical -bs 100 -c 200 -rl 300 -nc -silent;done | tee vulnerabilities/$file-nuclei.txt | notify -telegram -silent &> /dev/null
 }
 
 check_sqli() {
